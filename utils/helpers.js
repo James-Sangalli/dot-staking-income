@@ -1,6 +1,5 @@
 const request = require("superagent");
-const dotPrices = require("./prices/usd/dot-prices.json");
-const ksmPrices = require("./prices/usd/ksm-prices.json");
+const prices = require("./prices/prices");
 const endpoints = {
     "DOT": "https://polkadot.api.subscan.io",
     "KSM": "https://kusama.api.subscan.io"
@@ -12,16 +11,17 @@ const decimals = {
 
 module.exports = class Helpers {
     
-    constructor(address, network) {
+    constructor(address, network, currency) {
         this.address = address;
         this.network = network;
         this.decimal = decimals[network];
         this.endpoint = endpoints[network];
         this.apiKey = process.env.API_KEY;
+        this.currency = currency;
         if(this.network === "DOT") {
-            this.prices = dotPrices;
+            this.prices = prices[currency].DOT;
         } else {
-            this.prices = ksmPrices;
+            this.prices = prices[currency].KSM;
         }
     }
 
@@ -72,11 +72,12 @@ module.exports = class Helpers {
             const timestamp = result.list[index].block_timestamp;
             const amount = result.list[index].amount;
             result.list[index].amount = amount / this.decimal;
+            // for now the subscan API only accepts USD, but we have other currencies downloaded as dump
             const priceAtTime = await this.getPrice(timestamp, amount, "USD");
-            const valueOfRewardUSD = parseFloat((priceAtTime * (amount / this.decimal)).toFixed(2)); // USD is only 2dp
-            result.list[index].usd_price_per_coin = priceAtTime;
-            result.list[index].usd_value = valueOfRewardUSD;
-            result.total_value_usd += valueOfRewardUSD;
+            const valueOfRewardFiat = parseFloat((priceAtTime * (amount / this.decimal)).toFixed(2)); // fiat is only 2dp
+            result.list[index][`${this.currency}_price_per_coin`] = priceAtTime;
+            result.list[index][`${this.currency}_value`] = valueOfRewardFiat;
+            result.total_value_usd += valueOfRewardFiat;
             result[`total_value_${this.network}`] += result.list[index].amount;
             result.list[index].date = new Date(result.list[index].block_timestamp * 1000).toDateString();
             // delete irrelevant details
