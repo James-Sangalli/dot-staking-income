@@ -14,5 +14,9 @@ async function main() {
         process.exit(-1);
     }
 }
+if(process.argv.length > 2) {
+    // hacky but an easy way to differentiate between calling this via node in package.json and using it in app.js
+    const _ = main();
+}
 
-const _ = main();
+module.exports = { updatePrices: main };
