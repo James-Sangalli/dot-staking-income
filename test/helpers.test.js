@@ -3,12 +3,17 @@ const Helpers = require("../utils/helpers");
 
 describe("helpers functionality", () => {
 
-    before(async () => {
-        this.helpers = new Helpers("14RYaXRSqb9rPqMaAVp1UZW2czQ6dMNGMbvukwfifi6m8ZgZ", "DOT");
+    it("should be able to get the result properly", async () => {
+        const result = await new Helpers("13yHcTycP5tJhfDNvzLBDhLLgTEC9ZuZp3sL8yJNsoWh7Fpd", "DOT", "AUD").getObjectWithValue();
+        expect(result.list.length !== 0, "should return a list of results");
     });
 
-    it("should be able to get the result properly", async () => {
-        const result = await this.helpers.getObjectWithValue();
+    it("should be able to get a result on a large wallet", async() => {
+        const result = await new Helpers(
+            "1bq1oEa8ghJN5xViGDz4MnxBpsHpZ3Y1Uuef4E1vhKhh1WY",
+            "DOT",
+                    "AUD"
+        ).getObjectWithValue();
         expect(result.list.length !== 0, "should return a list of results");
     });
 

@@ -18,13 +18,13 @@ module.exports = class Helpers {
         this.decimal = decimals[network];
         this.endpoint = endpoints[network];
         this.apiKey = process.env.API_KEY;
-        this.currency = currency;
+        this.currency = currency.toLowerCase();
         if(this.network === "DOT") {
             this.coinName = "polkadot";
-            this.prices = prices[currency].DOT.prices;
+            this.prices = prices[this.currency].DOT.prices;
         } else {
             this.coinName = "kusama";
-            this.prices = prices[currency].KSM.prices;
+            this.prices = prices[this.currency].KSM.prices;
         }
     }
 
@@ -70,26 +70,25 @@ module.exports = class Helpers {
 
     async handleData(result) {
         try {
+            result = this.removeIrrelevantData(result);
             result[`total_value_${this.currency}`] = 0;
             result[`total_value_${this.network}`] = 0;
             for(const index in result.list) {
                 const timestamp = result.list[index].block_timestamp;
                 const amount = result.list[index].amount;
+                let priceAtTime;
+                try {
+                    priceAtTime = await this.getPrice(timestamp);
+                } catch {
+                    break; // End here and just give user the results we have
+                }
                 result.list[index].amount = amount / this.decimal;
-                const priceAtTime = await this.getPrice(timestamp, amount, this.currency);
                 const valueOfRewardFiat = parseFloat((priceAtTime * (amount / this.decimal)).toFixed(2)); // fiat is only 2dp
                 result.list[index][`${this.currency}_price_per_coin`] = priceAtTime;
                 result.list[index][`${this.currency}_value`] = valueOfRewardFiat;
                 result[`total_value_${this.currency}`] += valueOfRewardFiat;
                 result[`total_value_${this.network}`] += result.list[index].amount;
                 result.list[index].date = new Date(result.list[index].block_timestamp * 1000).toDateString();
-                // delete irrelevant details
-                delete result.list[index].account;
-                delete result.list[index].params;
-                delete result.list[index].event_index;
-                delete result.list[index].event_idx;
-                delete result.list[index].block_num;
-                delete result.list[index].extrinsic_idx;
             }
             result[`total_value_${this.currency}`] = parseFloat(result[`total_value_${this.currency}`].toFixed(2));
             return result;
@@ -99,30 +98,35 @@ module.exports = class Helpers {
 
     }
 
+    removeIrrelevantData(result) {
+        for(const index in result.list) {
+            // delete irrelevant details
+            delete result.list[index].account;
+            delete result.list[index].params;
+            delete result.list[index].event_index;
+            delete result.list[index].event_idx;
+            delete result.list[index].block_num;
+            delete result.list[index].extrinsic_idx;
+        }
+        return result;
+    }
+
     timeout(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    async getPrice(time, amount, currency) {
-        try {
-            // coingecko uses zero hour time snapshots
-            const date = new Date(time * 1000).setHours(0, 0, 0, 0);
-            // TODO a bit inefficient to have to iterate each time
-            for(const snapshot of this.prices) {
-                const snapshotTime = new Date(snapshot[0]).setHours(0,0,0,0);
-                if(snapshotTime === date) {
-                    const output = parseFloat(snapshot[1]).toFixed(2);
-                    return parseFloat(output);
-                }
+    async getPrice(time) {
+        // coingecko uses zero hour time snapshots
+        const date = new Date(time * 1000).setHours(0, 0, 0, 0);
+        // TODO a bit inefficient to have to iterate each time
+        for(const snapshot of this.prices) {
+            const snapshotTime = new Date(snapshot[0]).setHours(0,0,0,0);
+            if(snapshotTime === date) {
+                const output = parseFloat(snapshot[1]).toFixed(2);
+                return parseFloat(output);
             }
-            // if no prices are found, update the file and retry
-            await this.updatePrices(currency);
-            return this.getPrice(time, amount, currency);
-        } catch (e) {
-            console.error(e);
-            throw e;
         }
-
+        throw "Could not find price";
     }
 
     async updatePrices(currency) {

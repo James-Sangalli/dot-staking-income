@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node app.js",
     "updatePrices": "node utils/prices/update.js cmd && git add -A && git commit -m 'update prices' && git push origin master && git push heroku master",
-    "test": "mocha --exit --recursive",
+    "test": "mocha --exit --recursive --timeout=50000",
     "debug": "nodemon"
   },
   "repository": {
