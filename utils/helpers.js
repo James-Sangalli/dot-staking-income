@@ -90,6 +90,7 @@ module.exports = class Helpers {
             }
         }
         result[`total_value_${this.currency}`] = parseFloat(result[`total_value_${this.currency}`].toFixed(2));
+        result.list = result.list.filter(x => x !== null);
         return result;
     }
 
