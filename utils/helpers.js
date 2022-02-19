@@ -85,7 +85,8 @@ module.exports = class Helpers {
                 result[`total_value_${this.network}`] += result.list[index].amount;
                 result.list[index].date = new Date(result.list[index].block_timestamp * 1000).toDateString();
             } catch {
-                console.log("No price found");
+                delete result.list[index];
+                console.log(`No price found for ${timestamp}`);
             }
         }
         result[`total_value_${this.currency}`] = parseFloat(result[`total_value_${this.currency}`].toFixed(2));
