@@ -69,19 +69,14 @@ module.exports = class Helpers {
     }
 
     async handleData(result) {
-        try {
-            result = this.removeIrrelevantData(result);
-            result[`total_value_${this.currency}`] = 0;
-            result[`total_value_${this.network}`] = 0;
-            for(const index in result.list) {
-                const timestamp = result.list[index].block_timestamp;
-                const amount = result.list[index].amount;
-                let priceAtTime;
-                try {
-                    priceAtTime = await this.getPrice(timestamp);
-                } catch {
-                    break; // End here and just give user the results we have
-                }
+        result = this.removeIrrelevantData(result);
+        result[`total_value_${this.currency}`] = 0;
+        result[`total_value_${this.network}`] = 0;
+        for(const index in result.list) {
+            const timestamp = result.list[index].block_timestamp;
+            const amount = result.list[index].amount;
+            try {
+                const priceAtTime = await this.getPrice(timestamp);
                 result.list[index].amount = amount / this.decimal;
                 const valueOfRewardFiat = parseFloat((priceAtTime * (amount / this.decimal)).toFixed(2)); // fiat is only 2dp
                 result.list[index][`${this.currency}_price_per_coin`] = priceAtTime;
@@ -89,13 +84,12 @@ module.exports = class Helpers {
                 result[`total_value_${this.currency}`] += valueOfRewardFiat;
                 result[`total_value_${this.network}`] += result.list[index].amount;
                 result.list[index].date = new Date(result.list[index].block_timestamp * 1000).toDateString();
+            } catch {
+                console.log("No price found");
             }
-            result[`total_value_${this.currency}`] = parseFloat(result[`total_value_${this.currency}`].toFixed(2));
-            return result;
-        } catch (e) {
-            return e;
         }
-
+        result[`total_value_${this.currency}`] = parseFloat(result[`total_value_${this.currency}`].toFixed(2));
+        return result;
     }
 
     removeIrrelevantData(result) {

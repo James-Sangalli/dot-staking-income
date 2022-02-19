@@ -15,6 +15,8 @@ describe("helpers functionality", () => {
                     "AUD"
         ).getObjectWithValue();
         expect(result.list.length !== 0, "should return a list of results");
+        expect(result.total_value_aud !== 0, "should form the total AUD value properly");
+        expect(result.total_value_DOT !== 0, "should form the total DOT value properly");
     });
 
 });
