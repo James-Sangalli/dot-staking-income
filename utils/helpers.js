@@ -11,7 +11,12 @@ const decimals = {
 }
 
 module.exports = class Helpers {
-    
+
+    /*
+    * @param address - the address of the user
+    * @param network - the network to check for staking income
+    * @param currency - the fiat currency to use
+    * */
     constructor(address, network, currency) {
         this.address = address;
         this.network = network;
@@ -28,7 +33,11 @@ module.exports = class Helpers {
         }
     }
 
-    async getObjectWithValue() {
+    /*
+    * @dev - call the subscan API to get staking rewards, parse the data and format it for the user
+    * @returns - results that can be downloaded as a CSV file
+    * */
+    async getResults() {
         let index = 0;
         const dataObj = {};
         try {
@@ -49,7 +58,7 @@ module.exports = class Helpers {
             return {error: e};
         }
         dataObj.list = this.convertListObjToArray(dataObj.list);
-        return this.handleData(dataObj);
+        return this.getDataFormattedForCSV(dataObj);
     }
 
     objCombine(obj, variable, offset) {
@@ -68,7 +77,12 @@ module.exports = class Helpers {
         return dataAsArray;
     }
 
-    async handleData(result) {
+    /*
+    * @dev - format the raw data into data that can be downloaded as a CSV. This function removes irrelevant data and adds useful data like the total value etc.
+    * @param result - the raw data result object
+    * @returns - final result object for the user to download as a CSV
+    * */
+    async getDataFormattedForCSV(result) {
         result = this.removeIrrelevantData(result);
         result[`total_value_${this.currency}`] = 0;
         result[`total_value_${this.network}`] = 0;
@@ -76,9 +90,9 @@ module.exports = class Helpers {
             const timestamp = result.list[index].block_timestamp;
             const amount = result.list[index].amount;
             try {
-                const priceAtTime = await this.getPrice(timestamp);
+                const priceAtTime = await this.getPriceAtTime(timestamp);
                 result.list[index].amount = amount / this.decimal;
-                const valueOfRewardFiat = parseFloat((priceAtTime * (amount / this.decimal)).toFixed(2)); // fiat is only 2dp
+                const valueOfRewardFiat = parseFloat((priceAtTime * (amount / this.decimal)).toFixed(2));
                 result.list[index][`${this.currency}_price_per_coin`] = priceAtTime;
                 result.list[index][`${this.currency}_value`] = valueOfRewardFiat;
                 result[`total_value_${this.currency}`] += valueOfRewardFiat;
@@ -91,9 +105,15 @@ module.exports = class Helpers {
         }
         result[`total_value_${this.currency}`] = parseFloat(result[`total_value_${this.currency}`].toFixed(2));
         result.list = result.list.filter(x => x !== null);
+
         return result;
     }
 
+    /*
+    * @dev - removes irrelevant information from the raw result object
+    * @param result - raw data from the subscan API
+    * @returns - the same result object, minus irrelevant details
+    * */
     removeIrrelevantData(result) {
         for(const index in result.list) {
             // delete irrelevant details
@@ -104,6 +124,7 @@ module.exports = class Helpers {
             delete result.list[index].block_num;
             delete result.list[index].extrinsic_idx;
         }
+
         return result;
     }
 
@@ -111,7 +132,12 @@ module.exports = class Helpers {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    async getPrice(time) {
+    /*
+    * @dev - gets the price for a particular day
+    * @param time - the timestamp
+    * @returns - the price as per coingecko's historical data
+    * */
+    async getPriceAtTime(time) {
         // coingecko uses zero hour time snapshots
         const date = new Date(time * 1000).setHours(0, 0, 0, 0);
         // TODO a bit inefficient to have to iterate each time
@@ -125,18 +151,22 @@ module.exports = class Helpers {
         throw "Could not find price";
     }
 
+    /*
+    * @dev - updates the cached prices
+    * @param currency - the particular currency to update
+    * */
     async updatePrices(currency) {
         try {
             const query = `https://api.coingecko.com/api/v3/coins/${this.coinName}/market_chart?vs_currency=${currency}&days=max`;
             const result = await request.get(query);
             const updatedDataset = JSON.stringify(result.body);
             const fileName = `./utils/prices/${this.currency}/${this.network}.json`;
-            return fs.writeFile(fileName, updatedDataset);
+            await fs.writeFile(fileName, updatedDataset);
+            console.log(`Updated prices for ${currency}`);
         } catch (e) {
             console.error(e);
             throw e;
         }
-
     }
     
 }

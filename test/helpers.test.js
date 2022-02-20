@@ -4,7 +4,7 @@ const Helpers = require("../utils/helpers");
 describe("helpers functionality", () => {
 
     it("should be able to get the result properly", async () => {
-        const result = await new Helpers("13yHcTycP5tJhfDNvzLBDhLLgTEC9ZuZp3sL8yJNsoWh7Fpd", "DOT", "AUD").getObjectWithValue();
+        const result = await new Helpers("13yHcTycP5tJhfDNvzLBDhLLgTEC9ZuZp3sL8yJNsoWh7Fpd", "DOT", "AUD").getResults();
         expect(result.list.length !== 0, "should return a list of results");
     });
 
@@ -13,7 +13,7 @@ describe("helpers functionality", () => {
             "1bq1oEa8ghJN5xViGDz4MnxBpsHpZ3Y1Uuef4E1vhKhh1WY",
             "DOT",
                     "AUD"
-        ).getObjectWithValue();
+        ).getResults();
         expect(result.list.length !== 0, "should return a list of results");
         expect(result.total_value_aud !== 0, "should form the total AUD value properly");
         expect(result.total_value_DOT !== 0, "should form the total DOT value properly");

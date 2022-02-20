@@ -9,7 +9,7 @@ app.get("/history/:address/:network/:currency", (req, res, next) => {
     const address = req.params.address;
     const network = req.params.network.toUpperCase();
     const currency = req.params.currency.toLowerCase();
-    new Helpers(address, network, currency).getObjectWithValue().then((result) => {
+    new Helpers(address, network, currency).getResults().then((result) => {
         res.send(result);
     }).catch((err) => {
         res.send(err);
